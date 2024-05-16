@@ -8,12 +8,8 @@ participants:
     use_separate_vc: false
 additional_services:
   - tx_spammer
-  - dora
   - assertoor
-  - blockscout
   - beacon_metrics_gazer
-  - full_beaconchain_explorer
-  - prometheus_grafana
 tx_spammer_params:
   tx_spammer_extra_args: ["--accounts=1", "--txcount=1"]
 mev_type: null
