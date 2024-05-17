@@ -1,0 +1,77 @@
+besu:
+  - linux/amd64
+  - linux/arm64
+eleel:
+  - linux/amd64
+erigon:
+  - linux/amd64
+  - linux/arm64
+ethereumjs:
+  - linux/amd64
+  - linux/arm64
+geth:
+  - linux/amd64
+  - linux/arm64
+lighthouse:
+  - linux/amd64
+  - linux/arm64
+lodestar:
+  - linux/amd64
+  - linux/arm64
+nethermind:
+  - linux/amd64
+  - linux/arm64
+nimbus-eth2:
+  - linux/amd64
+  - linux/arm64
+nimbus-validator-client:
+  - linux/amd64
+  - linux/arm64
+nimbus-eth1:
+  - linux/amd64
+  - linux/arm64
+prysm-beacon-chain:
+  - linux/amd64
+  - linux/arm64
+prysm-validator:
+  - linux/amd64
+  - linux/arm64
+reth:
+  - linux/amd64
+  - linux/arm64
+teku:
+  - linux/amd64
+  - linux/arm64
+flashbots-builder:
+  - linux/amd64
+  - linux/arm64
+tx-fuzz:
+  - linux/amd64
+  - linux/arm64
+consensus-monitor:
+  - linux/amd64
+  - linux/arm64
+execution-monitor:
+  - linux/amd64
+  - linux/arm64
+beacon-metrics-gazer:
+  - linux/amd64
+  - linux/arm64
+goomy-blob:
+  - linux/amd64
+  - linux/arm64
+ethereum-genesis-generator:
+  - linux/amd64
+  - linux/arm64
+armiarma:
+  - linux/amd64
+  - linux/arm64
+goteth:
+  - linux/amd64
+  - linux/arm64
+grandine:
+  - linux/amd64
+  - linux/arm64
+mev-rs:
+  - linux/amd64
+  - linux/arm64
