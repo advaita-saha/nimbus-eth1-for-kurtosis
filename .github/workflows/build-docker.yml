@@ -224,7 +224,7 @@ jobs:
       run: |
         mkdir -p ./temp/dump
         cd ./temp/dump
-        cp ../../etc/assertoor/assertoor.yaml ./kurtosis-params.yaml
+        cp ../../assertoor.yaml ./kurtosis-params.yaml
 
         kurtosis enclave dump assertoor-${{ github.run_id }}
         kurtosis enclave rm -f assertoor-${{ github.run_id }}
