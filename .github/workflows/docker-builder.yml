@@ -1,0 +1,225 @@
+# Fluffy
+# Copyright (c) 2023-2024 Status Research & Development GmbH
+# Licensed and distributed under either of
+#   * MIT license (license terms in the root directory or at https://opensource.org/licenses/MIT).
+#   * Apache v2 license (license terms in the root directory or at https://www.apache.org/licenses/LICENSE-2.0).
+# at your option. This file may not be copied, modified, or distributed except according to those terms.
+
+name: Build nimbus-eth2 docker image
+
+on:
+  workflow_dispatch:
+    inputs:
+      repository:
+        description: The source nimbus-eth2 repository to build from
+        default: status-im/nimbus-eth2
+        type: string
+        required: true
+      ref:
+        description: The branch, tag or SHA to checkout and build from
+        default: unstable
+        type: string
+        required: true
+      docker_tag:
+        description: Override target docker tag (defaults to the above source ref if left blank)
+        type: string
+        required: false
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      platforms: ${{ steps.setup.outputs.platforms }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare Matrix
+        id: setup
+        uses: ./.github/actions/prepare
+        with:
+          client: 'nimbus-eth2'
+  deploy-beacon:
+    needs:
+      - prepare
+    runs-on: ${{ matrix.runner }}
+    continue-on-error: true
+    strategy:
+      matrix:
+        include: ${{fromJson(needs.prepare.outputs.platforms)}}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/install-deps
+        with:
+          repository: ${{ inputs.repository }}
+      - uses: ./.github/actions/deploy
+        with:
+          source_repository: ${{ inputs.repository }}
+          source_ref: ${{ inputs.ref }}
+          target_tag: ${{ inputs.docker_tag || inputs.ref }}-${{ matrix.slug }}
+          target_repository: ethpandaops/nimbus-eth2
+          target_dockerfile: ./nimbus-eth2/Dockerfile.beacon
+          platform: ${{ matrix.platform }}
+
+          DOCKER_USERNAME: "${{ vars.DOCKER_USERNAME }}"
+          DOCKER_PASSWORD: "${{ secrets.DOCKER_PASSWORD }}"
+          MACOS_PASSWORD: "${{ secrets.MACOS_PASSWORD }}"
+          GOPROXY: "${{ vars.GOPROXY }}"
+  deploy-beacon-minimal:
+    needs:
+      - prepare
+    runs-on: ${{ matrix.runner }}
+    continue-on-error: true
+    strategy:
+      matrix:
+        include: ${{fromJson(needs.prepare.outputs.platforms)}}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/install-deps
+        with:
+          repository: ${{ inputs.repository }}
+      - uses: ./.github/actions/deploy
+        with:
+          source_repository: ${{ inputs.repository }}
+          source_ref: ${{ inputs.ref }}
+          target_tag: ${{ inputs.docker_tag || inputs.ref }}-minimal-${{ matrix.slug }}
+          target_repository: ethpandaops/nimbus-eth2
+          target_dockerfile: ./nimbus-eth2/Dockerfile.beacon-minimal
+          platform: ${{ matrix.platform }}
+
+          DOCKER_USERNAME: "${{ vars.DOCKER_USERNAME }}"
+          DOCKER_PASSWORD: "${{ secrets.DOCKER_PASSWORD }}"
+          MACOS_PASSWORD: "${{ secrets.MACOS_PASSWORD }}"
+          GOPROXY: "${{ vars.GOPROXY }}"
+  deploy-validator:
+    needs:
+      - prepare
+    runs-on: ${{ matrix.runner }}
+    continue-on-error: true
+    strategy:
+      matrix:
+        include: ${{fromJson(needs.prepare.outputs.platforms)}}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/deploy
+        with:
+          source_repository: ${{ inputs.repository }}
+          source_ref: ${{ inputs.ref }}
+          target_tag: ${{ inputs.docker_tag || inputs.ref }}-${{ matrix.slug }}
+          target_repository: ethpandaops/nimbus-validator-client
+          target_dockerfile: ./nimbus-eth2/Dockerfile.validator
+          platform: ${{ matrix.platform }}
+
+          DOCKER_USERNAME: "${{ vars.DOCKER_USERNAME }}"
+          DOCKER_PASSWORD: "${{ secrets.DOCKER_PASSWORD }}"
+          MACOS_PASSWORD: "${{ secrets.MACOS_PASSWORD }}"
+          GOPROXY: "${{ vars.GOPROXY }}"
+  deploy-validator-minimal:
+    needs:
+      - prepare
+    runs-on: ${{ matrix.runner }}
+    continue-on-error: true
+    strategy:
+      matrix:
+        include: ${{fromJson(needs.prepare.outputs.platforms)}}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/deploy
+        with:
+          source_repository: ${{ inputs.repository }}
+          source_ref: ${{ inputs.ref }}
+          target_tag: ${{ inputs.docker_tag || inputs.ref }}-minimal-${{ matrix.slug }}
+          target_repository: ethpandaops/nimbus-validator-client
+          target_dockerfile: ./nimbus-eth2/Dockerfile.validator-minimal
+          platform: ${{ matrix.platform }}
+
+          DOCKER_USERNAME: "${{ vars.DOCKER_USERNAME }}"
+          DOCKER_PASSWORD: "${{ secrets.DOCKER_PASSWORD }}"
+          MACOS_PASSWORD: "${{ secrets.MACOS_PASSWORD }}"
+          GOPROXY: "${{ vars.GOPROXY }}"
+  manifest-beacon:
+    needs:
+      - prepare
+      - deploy-beacon
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/manifest
+        with:
+          source_repository: ${{ inputs.repository }}
+          source_ref: ${{ inputs.ref }}
+          target_tag: ${{ inputs.docker_tag || inputs.ref }}
+          target_repository: ethpandaops/nimbus-eth2
+          platforms: ${{ needs.prepare.outputs.platforms }}
+
+          DOCKER_USERNAME: "${{ vars.DOCKER_USERNAME }}"
+          DOCKER_PASSWORD: "${{ secrets.DOCKER_PASSWORD }}"
+  manifest-beacon-minimal:
+    needs:
+      - prepare
+      - deploy-beacon-minimal
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/manifest
+        with:
+          source_repository: ${{ inputs.repository }}
+          source_ref: ${{ inputs.ref }}
+          target_tag: ${{ inputs.docker_tag || inputs.ref }}-minimal
+          target_repository: ethpandaops/nimbus-eth2
+          platforms: ${{ needs.prepare.outputs.platforms }}
+
+          DOCKER_USERNAME: "${{ vars.DOCKER_USERNAME }}"
+          DOCKER_PASSWORD: "${{ secrets.DOCKER_PASSWORD }}"
+  manifest-validator:
+    needs:
+      - prepare
+      - deploy-validator
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/manifest
+        with:
+          source_repository: ${{ inputs.repository }}
+          source_ref: ${{ inputs.ref }}
+          target_tag: ${{ inputs.docker_tag || inputs.ref }}
+          target_repository: ethpandaops/nimbus-validator-client
+          platforms: ${{ needs.prepare.outputs.platforms }}
+
+          DOCKER_USERNAME: "${{ vars.DOCKER_USERNAME }}"
+          DOCKER_PASSWORD: "${{ secrets.DOCKER_PASSWORD }}"
+  manifest-validator-minimal:
+    needs:
+      - prepare
+      - deploy-validator-minimal
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/manifest
+        with:
+          source_repository: ${{ inputs.repository }}
+          source_ref: ${{ inputs.ref }}
+          target_tag: ${{ inputs.docker_tag || inputs.ref }}-minimal
+          target_repository: ethpandaops/nimbus-validator-client
+          platforms: ${{ needs.prepare.outputs.platforms }}
+
+          DOCKER_USERNAME: "${{ vars.DOCKER_USERNAME }}"
+          DOCKER_PASSWORD: "${{ secrets.DOCKER_PASSWORD }}"
+  notify:
+    name: Discord Notification
+    runs-on: ubuntu-latest
+    needs:
+      - prepare
+      - deploy-beacon
+      - deploy-beacon-minimal
+      - deploy-validator
+      - deploy-validator-minimal
+      - manifest-beacon
+      - manifest-beacon-minimal
+      - manifest-validator
+      - manifest-validator-minimal
+    if: failure()
+    steps:
+      - name: Notify
+        uses: nobrayner/discord-webhook@v1
+        with:
+          github-token: ${{ secrets.github_token }}
+          discord-webhook: ${{ secrets.DISCORD_WEBHOOK }}
