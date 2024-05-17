@@ -7,7 +7,7 @@
 
 participants:
   - el_type: nimbus
-    el_image: ethpandaops/nimbus-eth1:master-84775fe
+    el_image: advaitanimbus/nimbus-builder-ci:master
     el_extra_params: ["--log-level=DEBUG"]
     cl_type: nimbus
     cl_image: statusim/nimbus-eth2:multiarch-latest
@@ -20,3 +20,10 @@ additional_services:
 tx_spammer_params:
   tx_spammer_extra_args: ["--accounts=1", "--txcount=1"]
 mev_type: null
+assertoor_params:
+  image: "ethpandaops/assertoor:master"
+  run_stability_check: true
+  run_block_proposal_check: true
+  run_transaction_test: true
+  run_blob_transaction_test: false
+  run_opcodes_transaction_test: true
