@@ -1,3 +1,9 @@
+# Copyright (c) 2023-2024 Status Research & Development GmbH
+# Licensed and distributed under either of
+#   * MIT license (license terms in the root directory or at https://opensource.org/licenses/MIT).
+#   * Apache v2 license (license terms in the root directory or at https://www.apache.org/licenses/LICENSE-2.0).
+# at your option. This file may not be copied, modified, or distributed except according to those terms.
+
 name: Build Docker Image
 
 on:
@@ -7,6 +13,11 @@ on:
 
 jobs:
   build:
+    name: Nimbue eth1 - eth2 compatibility check
+    outputs:
+      test_result: ${{ steps.test_result.outputs.test_result }}
+      test_status: ${{ steps.test_result.outputs.test_status }}
+      failed_test_status: ${{ steps.test_result.outputs.failed_test_status }}
     runs-on: ubuntu-latest
 
     steps:
@@ -40,14 +51,6 @@ jobs:
     - name: Logout from DockerHub
       run: docker logout
 
-  get_tests:
-    name: "Run assertoor tests on pairs"
-    runs-on: ubuntu-latest
-    outputs:
-      test_result: ${{ steps.test_result.outputs.test_result }}
-      test_status: ${{ steps.test_result.outputs.test_status }}
-      failed_test_status: ${{ steps.test_result.outputs.failed_test_status }}
-    steps:
     - name: Checkout Repository
       uses: actions/checkout@v4
     - name: Setup Kurtosis
