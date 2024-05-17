@@ -1,0 +1,157 @@
+# Fluffy
+# Copyright (c) 2023-2024 Status Research & Development GmbH
+# Licensed and distributed under either of
+#   * MIT license (license terms in the root directory or at https://opensource.org/licenses/MIT).
+#   * Apache v2 license (license terms in the root directory or at https://www.apache.org/licenses/LICENSE-2.0).
+# at your option. This file may not be copied, modified, or distributed except according to those terms.
+name: Deploy
+description: Build and push a docker image to Docker Hub
+
+inputs:
+  source_repository:
+    description: The source repository to build from
+    type: string
+    required: true
+  source_ref:
+    description: The branch, tag or SHA to checkout and build from
+    type: string
+    required: true
+  build_script:
+    description: The bash script path in this repository to run instead of the Docker build & push script. You must push the image yourself.
+    type: string
+    required: false
+  build_args:
+    description: Build arguments to pass to the Docker build
+    default: ""
+    type: string
+    required: false  
+  target_tag:
+    description: Docker hub tag to push to
+    type: string
+    required: true
+  target_repository:
+    description: Docker hub repository to push to
+    type: string
+    required: true
+  target_dockerfile:
+    description: Dockerfile path in this repository to build from. Omit to use source repository Dockerfile
+    type: string
+    default: ./source/Dockerfile
+    required: false
+  platform:
+    description: The platform to build for
+    type: string
+    required: true
+  # Secrets
+  DOCKER_USERNAME:
+    required: true
+  DOCKER_PASSWORD:
+    required: true
+  MACOS_PASSWORD:
+    required: true
+  GOPROXY:
+    required: false
+
+runs:
+  using: composite
+  steps:
+  - name: Checkout this repo
+    uses: actions/checkout@v4
+  - name: Check out source repository
+    uses: actions/checkout@v4
+    with:
+      repository: ${{ inputs.source_repository }}
+      path: source
+      ref: ${{ inputs.source_ref }}
+  - name: get git commit hash
+    id: git_commit_hash
+    shell: bash
+    run: |
+      cd source
+      echo "git_commit_hash=$(echo $(git log --pretty=format:'%h' -n 1))" >> $GITHUB_OUTPUT
+  - name: Set up Docker Context for Buildx
+    shell: bash
+    id: buildx-context
+    run: |
+      docker context use builders || docker context create builders 
+  - name: Set up Docker Buildx
+    uses: docker/setup-buildx-action@v3
+    with:
+      endpoint: builders
+  - name: Unlock MacOS keychain for Docker Hub login
+    shell: bash
+    if: runner.os == 'macOS'
+    run: |
+      security -v unlock-keychain -p ${{ inputs.MACOS_PASSWORD }} ~/Library/Keychains/login.keychain-db
+  - name: Login to Docker Hub
+    uses: docker/login-action@v3
+    with:
+      username: ${{ inputs.DOCKER_USERNAME }}
+      password: ${{ inputs.DOCKER_PASSWORD }}
+  ########################
+  # Build script case
+  #######################
+  - name: Build script
+    shell: bash
+    if: inputs.build_script
+    env:
+      source_repository: ${{ inputs.source_repository }}
+      source_ref: ${{ inputs.source_ref }}
+      target_tag: ${{ inputs.target_tag }}
+      target_repository: ${{ inputs.target_repository }}
+      target_dockerfile: ${{ inputs.target_dockerfile || './source/Dockerfile' }}
+      source_git_commit_hash: ${{ steps.git_commit_hash.outputs.git_commit_hash }}
+      GOPROXY: ${{ inputs.GOPROXY }}
+    run: |
+      ${{ inputs.build_script }}
+  - name: Image digest & tags (build script)
+    shell: bash
+    if: inputs.build_script
+    run: |
+      cat << EOF
+      digest: $(docker image inspect  --format='{{index .RepoDigests 0}}' ${{ inputs.target_repository }}:${{ inputs.target_tag }} | grep -oE "@(.*)" | cut -d'@' -f2-)
+      tags:
+        ${{ inputs.target_repository }}:${{ inputs.target_tag }}
+        ${{ inputs.target_repository }}:${{ inputs.target_tag }}-${{ steps.git_commit_hash.outputs.git_commit_hash }}
+      EOF
+  ########################
+  # Non build script case
+  #######################
+  - name: Inject GOPROXY into Dockerfile
+    if: ${{ inputs.build_script == '' }}
+    shell: bash
+    run: |
+      DOCKERFILE_PATH="${{ inputs.target_dockerfile }}"
+      if [[ -z "$DOCKERFILE_PATH" ]]; then
+        # Set to default value explicitly if input is empty
+        DOCKERFILE_PATH='./source/Dockerfile'
+      fi
+      awk '/^FROM/ { print; print "ENV GOPROXY=${{ inputs.GOPROXY }}"; next }1' ${DOCKERFILE_PATH} > Dockerfile.new
+      mv Dockerfile.new ${DOCKERFILE_PATH}
+  - name: Docker build & push
+    if: ${{ inputs.build_script == '' }}
+    id: docker_build
+    uses: docker/build-push-action@v5
+    with:
+      context: ./source
+      file: ${{ inputs.target_dockerfile }}
+      # two tags;
+      #   - $target_tag
+      #   - $target_tag-commit
+      tags: ${{ inputs.target_repository }}:${{ inputs.target_tag }}-${{ steps.git_commit_hash.outputs.git_commit_hash }},${{ inputs.target_repository }}:${{ inputs.target_tag }}
+      push: true
+      platforms: ${{ inputs.platform }}
+      build-args: ${{ inputs.build_args }}
+      labels: |
+        ethpandaops.io.repo=${{ inputs.source_repository }}
+        ethpandaops.io.commitRef=${{ inputs.source_ref }}
+  - name: Image digest & tags
+    shell: bash
+    if: ${{ inputs.build_script == '' }}
+    run: |
+      cat << EOF
+      digest: ${{ steps.docker_build.outputs.digest }}
+      tags:
+        ${{ inputs.target_repository }}:${{ inputs.target_tag }}
+        ${{ inputs.target_repository }}:${{ inputs.target_tag }}-${{ steps.git_commit_hash.outputs.git_commit_hash }}
+      EOF

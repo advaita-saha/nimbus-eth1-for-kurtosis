@@ -1,0 +1,35 @@
+# Fluffy
+# Copyright (c) 2023-2024 Status Research & Development GmbH
+# Licensed and distributed under either of
+#   * MIT license (license terms in the root directory or at https://opensource.org/licenses/MIT).
+#   * Apache v2 license (license terms in the root directory or at https://www.apache.org/licenses/LICENSE-2.0).
+# at your option. This file may not be copied, modified, or distributed except according to those terms.
+name: Install deps
+description: Install deps for a source repository
+
+inputs:
+  repository:
+    description: The repository to build from
+    type: string
+    required: true
+
+runs:
+  using: composite
+  steps:
+  - name: Checkout this repo
+    uses: actions/checkout@v4
+  - uses: actions/setup-java@v4
+    if: contains(inputs.repository, 'teku')
+    with:
+      distribution: 'temurin'
+      java-version: '17'
+  - uses: actions/setup-java@v4
+    if: contains(inputs.repository, 'besu')
+    with:
+      distribution: 'temurin'
+      java-version: '17'
+  - uses: actions/setup-node@v4
+    if: contains(inputs.repository, 'lodestar') || contains(inputs.repository, 'ethereumjs')
+    with:
+      node-version: 20
+      check-latest: true

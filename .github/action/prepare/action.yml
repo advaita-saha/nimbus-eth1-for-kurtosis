@@ -1,0 +1,41 @@
+# Fluffy
+# Copyright (c) 2023-2024 Status Research & Development GmbH
+# Licensed and distributed under either of
+#   * MIT license (license terms in the root directory or at https://opensource.org/licenses/MIT).
+#   * Apache v2 license (license terms in the root directory or at https://www.apache.org/licenses/LICENSE-2.0).
+# at your option. This file may not be copied, modified, or distributed except according to those terms.
+
+name: 'Setup'
+description: 'Read and parse config files for specified client'
+inputs:
+  client:
+    description: 'The client'
+    required: true
+outputs:
+  platforms:
+    description: "Matrix of platforms and runner to use"
+    value: ${{ steps.setup_platforms.outputs.platforms }}
+runs:
+  using: "composite"
+  steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    - uses: mikefarah/yq@v4.35.1
+    - name: Generate platform and runner matrix from config files
+      id: setup_platforms
+      shell: bash
+      run: |
+        PLATFORMS_JSON="["
+        client="${{ inputs.client }}"
+
+        # Extract the platforms for the specified client
+        platforms=$(yq e ".$client[]" platforms.yaml)
+
+        for platform in $platforms; do
+          slug=$(echo "$platform" | tr '/' '-')
+          runner=$(yq e ".\"$platform\"" runners.yaml)
+          PLATFORMS_JSON+="{\"platform\":\"$platform\", \"runner\":\"$runner\", \"slug\":\"$slug\"},"
+        done
+
+        PLATFORMS_JSON="${PLATFORMS_JSON%,}]"
+        echo "platforms=$PLATFORMS_JSON" >> $GITHUB_OUTPUT
