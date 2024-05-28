@@ -69,7 +69,7 @@ jobs:
         export github_repository=${{ github.repository }} 
 
         cat kurtosis-network-params.yml | envsubst > assertoor.yaml
-        sed -i "s/\(el_image: advaitanimbus\/nimbus-builder-ci:\).*/\1${{ github.ref_name }}/" assertoor.yml
+        sed -i "s/\(el_image: advaitanimbus\/nimbus-builder-ci:\).*/\1${{ github.ref_name }}/" assertoor.yaml
 
         kurtosis run github.com/kurtosis-tech/ethereum-package --enclave assertoor-${{ github.run_id }} --args-file assertoor.yaml
 
