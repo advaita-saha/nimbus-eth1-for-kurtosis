@@ -3,7 +3,7 @@ FROM debian:testing-slim AS build
 SHELL ["/bin/bash", "-c"]
 
 RUN apt-get clean && apt update \
- && apt -y install build-essential git-lfs librocksdb-dev libpcre3-dev
+ && apt -y install build-essential git-lfs librocksdb-dev
 
 RUN ldd --version ldd
 
@@ -20,7 +20,7 @@ FROM debian:testing-slim as deploy
 
 SHELL ["/bin/bash", "-c"]
 RUN apt-get clean && apt update \
- && apt -y install build-essential librocksdb-dev libpcre3-dev
+ && apt -y install build-essential librocksdb-dev
 RUN apt update && apt -y upgrade
 
 RUN ldd --version ldd
