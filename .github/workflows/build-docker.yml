@@ -35,21 +35,12 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-buildx-
 
-    - name: Login to DockerHub
-      uses: docker/login-action@v2
-      with:
-        username: ${{ secrets.DOCKER_USERNAME }}
-        password: ${{ secrets.DOCKER_PASSWORD }}
-
     - name: Build and push Docker image
       uses: docker/build-push-action@v5
       with:
         context: .
-        push: true
-        tags: advaitanimbus/nimbus-builder-ci:${{ github.ref_name }}
-
-    - name: Logout from DockerHub
-      run: docker logout
+        push: false
+        tags: localtestnet
 
     - name: Checkout Repository
       uses: actions/checkout@v4
@@ -69,7 +60,7 @@ jobs:
         export github_repository=${{ github.repository }} 
 
         cat kurtosis-network-params.yml | envsubst > assertoor.yaml
-        sed -i "s/\(el_image: advaitanimbus\/nimbus-builder-ci:\).*/\1${{ github.ref_name }}/" assertoor.yaml
+        sed -i "s/el_image: .*/el_image: localtestnet/" assertoor.yaml
 
         kurtosis run github.com/kurtosis-tech/ethereum-package --enclave assertoor-${{ github.run_id }} --args-file assertoor.yaml
 
