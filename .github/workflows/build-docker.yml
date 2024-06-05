@@ -35,15 +35,11 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-buildx-
 
-    - name: Build and push Docker image
-      uses: docker/build-push-action@v5
-      with:
-        context: .
-        push: false
-        tags: localtestnet
+    - name: Build Docker image
+      shell: bash
+      run: docker build . -t localtestnet
+        
 
-    - name: Checkout Repository
-      uses: actions/checkout@v4
     - name: Setup Kurtosis
       shell: bash
       run: |
